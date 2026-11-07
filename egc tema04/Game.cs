@@ -115,10 +115,27 @@ public class Game : GameWindow
 
         if (KeyboardState.IsKeyPressed(Keys.H)) PrintHelp();
 
+        bool selectionChanged = KeyboardState.IsKeyPressed(Keys.Tab);
+        if (selectionChanged) _selected = (_selected + 1) % _scene.Count;
+
+        bool projectionChanged = KeyboardState.IsKeyPressed(Keys.O);
+        if (projectionChanged) _camera.IsPerspective = !_camera.IsPerspective;
+
+        bool resetRequested = KeyboardState.IsKeyPressed(Keys.R);
+        if (resetRequested) ResetScene();
+
+        if (KeyboardState.IsKeyPressed(Keys.F)) _wireframe = !_wireframe;
+
+        if (selectionChanged || projectionChanged || resetRequested)
+        {
+            _titleDirty = true;
+        }
+
         // --- Obiectul selectat: tastatura (secțiunea 8) ------------------------------
 
         float dt = (float)args.Time;
         _orbitAngleDegrees = (_orbitAngleDegrees + 90.0f * dt) % 360.0f;
+        // sel este ales după Tab și ResetScene, astfel încât toate comenzile să folosească selecția curentă.
         SceneObject sel = _scene[_selected];
 
         const float moveSpeed = 2.0f;   // unități de lume pe secundă
@@ -140,17 +157,6 @@ public class Game : GameWindow
         sel.Transform.Scale.X = Math.Clamp(sel.Transform.Scale.X, 0.1f, 10.0f);
         sel.Transform.Scale.Y = Math.Clamp(sel.Transform.Scale.Y, 0.1f, 10.0f);
 
-        if (KeyboardState.IsKeyPressed(Keys.Tab)) _selected = (_selected + 1) % _scene.Count;
-        if (KeyboardState.IsKeyPressed(Keys.O))   _camera.IsPerspective = !_camera.IsPerspective;
-        if (KeyboardState.IsKeyPressed(Keys.F))   _wireframe = !_wireframe;
-        if (KeyboardState.IsKeyPressed(Keys.R))   ResetScene();
-
-        if (KeyboardState.IsKeyPressed(Keys.Tab) || KeyboardState.IsKeyPressed(Keys.O) ||
-            KeyboardState.IsKeyPressed(Keys.R))
-        {
-            _titleDirty = true;
-        }
-
         // --- Obiectul selectat: mouse-ul (secțiunea 9) -------------------------------
 
         if (MouseState.IsButtonPressed(MouseButton.Left))
@@ -165,7 +171,7 @@ public class Game : GameWindow
 
         if (_pivot.HasValue && KeyboardState.IsKeyDown(Keys.P))
         {
-            float pivotRotation = 90.0f * dt * multiplier;
+            float pivotRotation = 90.0f * dt;
             Vector2 pivot = _pivot.Value;
             // T4: T(-pivot) * R * T(pivot) rotește centrul obiectului în jurul pivotului.
             Matrix4 aroundPivot =
