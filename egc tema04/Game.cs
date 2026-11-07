@@ -25,6 +25,7 @@ public class Game : GameWindow
     // Starea aplicației (se modifică în OnUpdateFrame, se folosește în OnRenderFrame).
     private int _selected;            // indexul obiectului selectat în _scene (tasta Tab)
     private bool _wireframe;          // contur (true) sau plin (false)
+    private Vector2? _pivot;
 
     // Contoare afișate în titlul ferestrei.
     private readonly string _baseTitle;
@@ -150,7 +151,24 @@ public class Game : GameWindow
             sel.Transform.Position = ScreenToWorld(MouseState.Position, sel.Transform.Depth);
         }
 
-        // TODO (T4, facultativ): clic dreapta = pivot; tasta P ținută = rotație în jurul pivotului
+        if (MouseState.IsButtonPressed(MouseButton.Right))
+        {
+            _pivot = ScreenToWorld(MouseState.Position);
+        }
+
+        if (_pivot.HasValue && KeyboardState.IsKeyDown(Keys.P))
+        {
+            float pivotRotation = 90.0f * dt * multiplier;
+            Vector2 pivot = _pivot.Value;
+            // T4: T(-pivot) * R * T(pivot) rotește centrul obiectului în jurul pivotului.
+            Matrix4 aroundPivot =
+                Matrix4.CreateTranslation(-pivot.X, -pivot.Y, 0.0f)
+              * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(pivotRotation))
+              * Matrix4.CreateTranslation(pivot.X, pivot.Y, 0.0f);
+            Vector4 position = new Vector4(sel.Transform.Position.X, sel.Transform.Position.Y, 0.0f, 1.0f) * aroundPivot;
+            sel.Transform.Position = new Vector2(position.X, position.Y);
+            sel.Transform.Rotation += pivotRotation;
+        }
 
         // --- Camera: tastatura și rotița (secțiunea 6.2) -----------------------------
 
@@ -268,6 +286,7 @@ public class Game : GameWindow
             _scene[i].Transform = _initialTransforms[i].Clone();
         }
         _camera.Reset();
+        _pivot = null;
     }
 
     /// <summary>
