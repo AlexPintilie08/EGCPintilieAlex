@@ -145,8 +145,10 @@ public class Game : GameWindow
 
         // --- Obiectul selectat: mouse-ul (secțiunea 9) -------------------------------
 
-        // TODO (T3): la clic stânga, obiectul selectat se mută în punctul din lume aflat sub cursor
-        //            (folosiți ScreenToWorld; Depth nu se schimbă)
+        if (MouseState.IsButtonPressed(MouseButton.Left))
+        {
+            sel.Transform.Position = ScreenToWorld(MouseState.Position, sel.Transform.Depth);
+        }
 
         // TODO (T4, facultativ): clic dreapta = pivot; tasta P ținută = rotație în jurul pivotului
 
@@ -224,10 +226,38 @@ public class Game : GameWindow
     }
 
     /// <summary>Transformă poziția mouse-ului (pixeli, origine stânga-sus) în coordonate de lume.</summary>
-    private Vector2 ScreenToWorld(Vector2 mousePixels)
+    private Vector2 ScreenToWorld(Vector2 mousePixels, float worldDepth = 0.0f)
     {
-        // TODO (T3): pasul 1 (pixel → NDC), apoi pasul 2 (NDC → lume, cu inversa lui view * projection)
-        return Vector2.Zero;
+        float width = Math.Max(ClientSize.X, 1);
+        float height = Math.Max(ClientSize.Y, 1);
+        // T3: pixelii cresc spre jos, iar NDC spre sus; de aceea y_ndc este 1 - 2*y/H.
+        float ndcX = 2.0f * mousePixels.X / width - 1.0f;
+        float ndcY = 1.0f - 2.0f * mousePixels.Y / height;
+
+        Matrix4 viewProjection = _camera.ViewMatrix * _camera.ProjectionMatrix;
+        Matrix4 inverseViewProjection = Matrix4.Invert(viewProjection);
+
+        if (!_camera.IsPerspective)
+        {
+            Vector4 world = new Vector4(ndcX, ndcY, 0.0f, 1.0f) * inverseViewProjection;
+            if (MathF.Abs(world.W) > float.Epsilon) world /= world.W;
+            return new Vector2(world.X, world.Y);
+        }
+
+        Vector4 nearHomogeneous = new Vector4(ndcX, ndcY, -1.0f, 1.0f) * inverseViewProjection;
+        Vector4 farHomogeneous = new Vector4(ndcX, ndcY, 1.0f, 1.0f) * inverseViewProjection;
+        Vector3 nearPoint = nearHomogeneous.Xyz / nearHomogeneous.W;
+        Vector3 farPoint = farHomogeneous.Xyz / farHomogeneous.W;
+        Vector3 rayDirection = farPoint - nearPoint;
+
+        if (MathF.Abs(rayDirection.Z) <= float.Epsilon)
+        {
+            return new Vector2(nearPoint.X, nearPoint.Y);
+        }
+
+        float distance = (worldDepth - nearPoint.Z) / rayDirection.Z;
+        Vector3 worldPoint = nearPoint + rayDirection * distance;
+        return new Vector2(worldPoint.X, worldPoint.Y);
     }
 
     /// <summary>Tasta R: obiectele revin la transformările inițiale, camera la starea inițială.</summary>
