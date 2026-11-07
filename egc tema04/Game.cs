@@ -21,11 +21,13 @@ public class Game : GameWindow
     private Shader _shader = null!;
     private readonly List<SceneObject> _scene = new();
     private readonly List<Transform2D> _initialTransforms = new();   // pentru tasta R
+    private Mesh? _satelliteMesh;
 
     // Starea aplicației (se modifică în OnUpdateFrame, se folosește în OnRenderFrame).
     private int _selected;            // indexul obiectului selectat în _scene (tasta Tab)
     private bool _wireframe;          // contur (true) sau plin (false)
     private Vector2? _pivot;
+    private float _orbitAngleDegrees;
 
     // Contoare afișate în titlul ferestrei.
     private readonly string _baseTitle;
@@ -80,6 +82,8 @@ public class Game : GameWindow
         AddObject("cerc", Shapes.RegularPolygon(64, 0.5f),
                   new Transform2D { Position = new Vector2(0.8f, -0.6f), Depth = 2.0f });
 
+        _satelliteMesh = Shapes.Triangle();
+        Console.WriteLine("Apasa H pentru lista comenzilor.");
         _fpsStopwatch.Restart();
     }
 
@@ -109,9 +113,12 @@ public class Game : GameWindow
             Close();
         }
 
+        if (KeyboardState.IsKeyPressed(Keys.H)) PrintHelp();
+
         // --- Obiectul selectat: tastatura (secțiunea 8) ------------------------------
 
         float dt = (float)args.Time;
+        _orbitAngleDegrees = (_orbitAngleDegrees + 90.0f * dt) % 360.0f;
         SceneObject sel = _scene[_selected];
 
         const float moveSpeed = 2.0f;   // unități de lume pe secundă
@@ -224,7 +231,18 @@ public class Game : GameWindow
             obj.Mesh.Draw();
         }
 
-        // TODO (T5, facultativ): satelitul obiectului selectat
+        if (_satelliteMesh is not null)
+        {
+            // T5: orbita este în coordonatele părintelui, deci scalarea lui mărește distanța satelitului.
+            Matrix4 localTransform =
+                Matrix4.CreateScale(0.3f, 0.3f, 1.0f)
+              * Matrix4.CreateTranslation(1.2f, 0.0f, 0.0f)
+              * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(_orbitAngleDegrees));
+            Matrix4 satelliteModel = localTransform * _scene[_selected].Transform.ModelMatrix;
+            _shader.SetMatrix4("uModel", satelliteModel);
+            _shader.SetColor("uTint", Color4.White);
+            _satelliteMesh.Draw();
+        }
 
         // 5. Afișăm cadrul terminat: back buffer <-> front buffer.
         SwapBuffers();
@@ -238,6 +256,7 @@ public class Game : GameWindow
         {
             obj.Dispose();
         }
+        _satelliteMesh?.Dispose();
         _shader.Dispose();
 
         base.OnUnload();
@@ -287,6 +306,29 @@ public class Game : GameWindow
         }
         _camera.Reset();
         _pivot = null;
+        _orbitAngleDegrees = 0.0f;
+    }
+
+    private static void PrintHelp()
+    {
+        Console.WriteLine("========================================");
+        Console.WriteLine("EGC - LABORATOR 04 - COMENZI");
+        Console.WriteLine("H              - afiseaza aceasta lista");
+        Console.WriteLine("ESC            - inchide aplicatia");
+        Console.WriteLine("TAB            - selecteaza urmatorul obiect; satelitul il urmeaza");
+        Console.WriteLine("SAGETI         - deplaseaza obiectul selectat");
+        Console.WriteLine("Q / E          - roteste obiectul selectat");
+        Console.WriteLine("Z / X          - micsoreaza / mareste obiectul selectat");
+        Console.WriteLine("LEFT SHIFT     - miscare, rotatie si scalare de 3 ori mai rapide");
+        Console.WriteLine("W / A / S / D  - deplaseaza camera");
+        Console.WriteLine("SCROLL         - modifica zoom-ul camerei");
+        Console.WriteLine("CLICK STANGA   - muta obiectul selectat sub cursor, pastrand adancimea");
+        Console.WriteLine("CLICK DREAPTA  - stabileste pivotul sub cursor");
+        Console.WriteLine("P              - cat timp este tinuta, roteste obiectul in jurul pivotului");
+        Console.WriteLine("O              - schimba proiectia ortografica / perspectiva");
+        Console.WriteLine("F              - schimba desenarea contur / plin");
+        Console.WriteLine("R              - reseteaza obiectele, camera, pivotul si satelitul");
+        Console.WriteLine("========================================");
     }
 
     /// <summary>
