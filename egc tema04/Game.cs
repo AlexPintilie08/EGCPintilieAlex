@@ -134,7 +134,10 @@ public class Game : GameWindow
         // --- Obiectul selectat: tastatura (secțiunea 8) ------------------------------
 
         float dt = (float)args.Time;
-        _orbitAngleDegrees = (_orbitAngleDegrees + 90.0f * dt) % 360.0f;
+        if (!resetRequested)
+        {
+            _orbitAngleDegrees = (_orbitAngleDegrees + 90.0f * dt) % 360.0f;
+        }
         // sel este ales după Tab și ResetScene, astfel încât toate comenzile să folosească selecția curentă.
         SceneObject sel = _scene[_selected];
 
@@ -153,7 +156,7 @@ public class Game : GameWindow
         float scaleFactor = MathF.Pow(1.5f, dt * multiplier);
         if (KeyboardState.IsKeyDown(Keys.Z)) sel.Transform.Scale /= scaleFactor;
         if (KeyboardState.IsKeyDown(Keys.X)) sel.Transform.Scale *= scaleFactor;
-        // T2: scalarea prin inmultire pastreaza aceeasi schimbare relativa indiferent de scara curenta.
+        // T2: inmultirea pastreaza schimbarea relativa si evita scalele zero sau negative.
         sel.Transform.Scale.X = Math.Clamp(sel.Transform.Scale.X, 0.1f, 10.0f);
         sel.Transform.Scale.Y = Math.Clamp(sel.Transform.Scale.Y, 0.1f, 10.0f);
 
@@ -239,7 +242,7 @@ public class Game : GameWindow
 
         if (_satelliteMesh is not null)
         {
-            // T5: orbita este în coordonatele părintelui, deci scalarea lui mărește distanța satelitului.
+            // T5: scalarea uniformă mărește sau micșorează raza; cea neuniformă poate face orbita eliptică.
             Matrix4 localTransform =
                 Matrix4.CreateScale(0.3f, 0.3f, 1.0f)
               * Matrix4.CreateTranslation(1.2f, 0.0f, 0.0f)
