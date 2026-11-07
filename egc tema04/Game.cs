@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -27,12 +28,20 @@ public class Game : GameWindow
 
     // Contoare afișate în titlul ferestrei.
     private readonly string _baseTitle;
-    private double _secondTimer;
-    private int _frames, _lastFrames;
+    private readonly Stopwatch _fpsStopwatch = new();
+    private int _frames;
+    private double _lastFps;
     private bool _titleDirty = true;
 
+    private static GameWindowSettings CreateUncappedGameWindowSettings()
+    {
+        GameWindowSettings settings = GameWindowSettings.Default;
+        settings.UpdateFrequency = 0.0;
+        return settings;
+    }
+
     public Game(int width, int height, string title)
-        : base(GameWindowSettings.Default,
+        : base(CreateUncappedGameWindowSettings(),
                new NativeWindowSettings
                {
                    ClientSize = new Vector2i(width, height),
@@ -43,7 +52,7 @@ public class Game : GameWindow
                })
     {
         _baseTitle = title;
-        VSync = VSyncMode.On;   // swap-ul bufferelor așteaptă reîmprospătarea monitorului
+        VSync = VSyncMode.Off;
     }
 
     /// <summary>Apelată O SINGURĂ DATĂ, după crearea ferestrei și a contextului OpenGL.</summary>
@@ -69,6 +78,8 @@ public class Game : GameWindow
                   new Transform2D { Position = new Vector2(2.0f, 1.0f) });
         AddObject("cerc", Shapes.RegularPolygon(64, 0.5f),
                   new Transform2D { Position = new Vector2(0.8f, -0.6f), Depth = 2.0f });
+
+        _fpsStopwatch.Restart();
     }
 
     /// <summary>Adaugă un obiect în scenă și reține transformarea lui inițială (pentru tasta R).</summary>
@@ -103,12 +114,23 @@ public class Game : GameWindow
         SceneObject sel = _scene[_selected];
 
         const float moveSpeed = 2.0f;   // unități de lume pe secundă
-        if (KeyboardState.IsKeyDown(Keys.Left))  sel.Transform.Position.X -= moveSpeed * dt;
-        if (KeyboardState.IsKeyDown(Keys.Right)) sel.Transform.Position.X += moveSpeed * dt;
-        if (KeyboardState.IsKeyDown(Keys.Down))  sel.Transform.Position.Y -= moveSpeed * dt;
-        if (KeyboardState.IsKeyDown(Keys.Up))    sel.Transform.Position.Y += moveSpeed * dt;
+        float multiplier = KeyboardState.IsKeyDown(Keys.LeftShift) ? 3.0f : 1.0f;
+        float moveStep = moveSpeed * dt * multiplier;
+        if (KeyboardState.IsKeyDown(Keys.Left))  sel.Transform.Position.X -= moveStep;
+        if (KeyboardState.IsKeyDown(Keys.Right)) sel.Transform.Position.X += moveStep;
+        if (KeyboardState.IsKeyDown(Keys.Down))  sel.Transform.Position.Y -= moveStep;
+        if (KeyboardState.IsKeyDown(Keys.Up))    sel.Transform.Position.Y += moveStep;
 
-        // TODO (T2): Q / E rotesc obiectul, Z / X îl scalează
+        float rotationStep = 90.0f * dt * multiplier;
+        if (KeyboardState.IsKeyDown(Keys.Q)) sel.Transform.Rotation += rotationStep;
+        if (KeyboardState.IsKeyDown(Keys.E)) sel.Transform.Rotation -= rotationStep;
+
+        float scaleFactor = MathF.Pow(1.5f, dt * multiplier);
+        if (KeyboardState.IsKeyDown(Keys.Z)) sel.Transform.Scale /= scaleFactor;
+        if (KeyboardState.IsKeyDown(Keys.X)) sel.Transform.Scale *= scaleFactor;
+        // T2: scalarea prin inmultire pastreaza aceeasi schimbare relativa indiferent de scara curenta.
+        sel.Transform.Scale.X = Math.Clamp(sel.Transform.Scale.X, 0.1f, 10.0f);
+        sel.Transform.Scale.Y = Math.Clamp(sel.Transform.Scale.Y, 0.1f, 10.0f);
 
         if (KeyboardState.IsKeyPressed(Keys.Tab)) _selected = (_selected + 1) % _scene.Count;
         if (KeyboardState.IsKeyPressed(Keys.O))   _camera.IsPerspective = !_camera.IsPerspective;
@@ -141,19 +163,19 @@ public class Game : GameWindow
 
         // --- Titlul ferestrei: obiectul selectat, proiecția, cadre pe secundă --------
 
-        _secondTimer += args.Time;
-        if (_secondTimer >= 1.0)
+        double sampleSeconds = _fpsStopwatch.Elapsed.TotalSeconds;
+        if (sampleSeconds >= 1.0)
         {
-            _lastFrames = _frames;
+            _lastFps = _frames / sampleSeconds;
             _frames = 0;
-            _secondTimer -= 1.0;
+            _fpsStopwatch.Restart();
             _titleDirty = true;
         }
 
         if (_titleDirty)
         {
             string projection = _camera.IsPerspective ? "perspectivă" : "ortografică";
-            Title = $"{_baseTitle} | selectat: {_scene[_selected].Name} | proiecție {projection} | FPS: {_lastFrames}";
+            Title = $"{_baseTitle} | selectat: {_scene[_selected].Name} | proiecție {projection} | FPS: {_lastFps:F0}";
             _titleDirty = false;
         }
     }
@@ -162,8 +184,6 @@ public class Game : GameWindow
     protected override void OnRenderFrame(FrameEventArgs args)
     {
         base.OnRenderFrame(args);
-        _frames++;
-
         // 1. Ștergem imaginea veche din back buffer.
         GL.ClearColor(0.12f, 0.14f, 0.18f, 1.0f);
         GL.Clear(ClearBufferMask.ColorBufferBit);
@@ -188,6 +208,7 @@ public class Game : GameWindow
 
         // 5. Afișăm cadrul terminat: back buffer <-> front buffer.
         SwapBuffers();
+        _frames++;
     }
 
     /// <summary>Apelată O SINGURĂ DATĂ, la închiderea ferestrei: eliberăm resursele GPU.</summary>
