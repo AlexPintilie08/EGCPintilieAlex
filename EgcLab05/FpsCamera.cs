@@ -22,7 +22,7 @@ public class FpsCamera : Camera
     /// <summary>Tangajul (pitch), în grade: rotația sus-jos. Limitat la ±MaxPitch.</summary>
     public float Pitch { get; private set; }
 
-    /// <summary>Zbor liber (true) sau mers pe sol (false). Comutat cu tasta G (facultativ, TODO 5.7).</summary>
+    /// <summary>Zbor liber (true) sau mers pe sol (false). Comutat cu tasta G.</summary>
     public bool FreeFly { get; set; }
 
     // Baza camerei: trei vectori unitate, perpendiculari doi câte doi (secțiunea 5).
@@ -117,6 +117,17 @@ public class FpsCamera : Camera
         Pitch = StartPitch;
         FreeFly = false;
         FieldOfView = 60.0f;
+        UpdateVectors();
+    }
+
+    public void SetPose(Vector3 position, Vector3 front)
+    {
+        Vector3 direction = Vector3.Normalize(front);
+        _position = position;
+        Yaw = MathHelper.RadiansToDegrees(MathF.Atan2(direction.Z, direction.X));
+        Pitch = Math.Clamp(
+            MathHelper.RadiansToDegrees(MathF.Asin(Math.Clamp(direction.Y, -1.0f, 1.0f))),
+            -MaxPitch, MaxPitch);
         UpdateVectors();
     }
 

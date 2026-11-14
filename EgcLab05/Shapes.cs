@@ -206,7 +206,7 @@ public static class Shapes
     }
 
     /// <summary>
-    /// FACULTATIV (TODO 5.8): cilindrul cu axa pe Y, de rază <paramref name="radius"/> și înălțime
+    /// Cilindrul cu axa pe Y, de rază <paramref name="radius"/> și înălțime
     /// <paramref name="height"/>, cu <paramref name="segments"/> segmente pe circumferință.
     /// Suprafața laterală = o grilă cu 2 rânduri (ca sfera, cu un singur "stack"); capacele = evantaie.
     /// </summary>
