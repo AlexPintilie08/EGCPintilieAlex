@@ -212,8 +212,67 @@ public static class Shapes
     /// </summary>
     public static Mesh Cylinder(float radius, float height, int segments)
     {
-        // TODO 5.8 (facultativ): vârfurile și indicii cilindrului; până atunci, o formă goală.
-        return new Mesh(Array.Empty<float>(), Array.Empty<uint>());
+        if (radius <= 0.0f) throw new ArgumentOutOfRangeException(nameof(radius));
+        if (height <= 0.0f) throw new ArgumentOutOfRangeException(nameof(height));
+        if (segments < 3) throw new ArgumentOutOfRangeException(nameof(segments));
+
+        int sideRows = segments + 1;
+        int sideVertices = sideRows * 2;
+        int capSize = segments + 2;
+        var vertices = new float[(sideVertices + capSize * 2) * Mesh.FloatsPerVertex];
+        var indices = new uint[segments * 12];
+        float halfHeight = height / 2.0f;
+        Color4 sideColor = new(0.8f, 0.45f, 0.2f, 1.0f);
+        Color4 capColor = new(0.55f, 0.25f, 0.12f, 1.0f);
+
+        for (int j = 0; j <= segments; j++)
+        {
+            float angle = 2.0f * MathF.PI * j / segments;
+            float x = radius * MathF.Cos(angle);
+            float z = -radius * MathF.Sin(angle);
+            SetVertex(vertices, j, x, -halfHeight, z, sideColor);
+            SetVertex(vertices, sideRows + j, x, halfHeight, z, sideColor);
+        }
+
+        int topCenter = sideVertices;
+        int topRing = topCenter + 1;
+        int bottomCenter = topCenter + capSize;
+        int bottomRing = bottomCenter + 1;
+        SetVertex(vertices, topCenter, 0.0f, halfHeight, 0.0f, capColor);
+        SetVertex(vertices, bottomCenter, 0.0f, -halfHeight, 0.0f, capColor);
+
+        for (int j = 0; j <= segments; j++)
+        {
+            float angle = 2.0f * MathF.PI * j / segments;
+            float x = radius * MathF.Cos(angle);
+            float z = -radius * MathF.Sin(angle);
+            SetVertex(vertices, topRing + j, x, halfHeight, z, capColor);
+            SetVertex(vertices, bottomRing + j, x, -halfHeight, z, capColor);
+        }
+
+        int k = 0;
+        for (int j = 0; j < segments; j++)
+        {
+            uint bottomLeft = (uint)j;
+            uint bottomRight = bottomLeft + 1;
+            uint topLeft = (uint)(sideRows + j);
+            uint topRight = topLeft + 1;
+            indices[k++] = bottomLeft;
+            indices[k++] = bottomRight;
+            indices[k++] = topRight;
+            indices[k++] = topRight;
+            indices[k++] = topLeft;
+            indices[k++] = bottomLeft;
+
+            indices[k++] = (uint)topCenter;
+            indices[k++] = (uint)(topRing + j);
+            indices[k++] = (uint)(topRing + j + 1);
+            indices[k++] = (uint)bottomCenter;
+            indices[k++] = (uint)(bottomRing + j + 1);
+            indices[k++] = (uint)(bottomRing + j);
+        }
+
+        return new Mesh(vertices, indices);
     }
 
     // =====================================================================================

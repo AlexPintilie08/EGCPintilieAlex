@@ -121,8 +121,8 @@ public class Game : GameWindow
             }
         }
 
-        // TODO 5.8 (facultativ): un cilindru generat procedural, adăugat în scenă
-        //           (de exemplu în punctul (-1.5, 0.75, -6)).
+        SceneObject cylinder = AddObject("cilindru", AddMesh(Shapes.Cylinder(0.5f, 1.5f, 24)));
+        cylinder.Transform.Position = new Vector3(-1.5f, 0.75f, -6.0f);
     }
 
     private Mesh AddMesh(Mesh mesh)
