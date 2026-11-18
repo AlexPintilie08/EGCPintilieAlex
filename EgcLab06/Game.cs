@@ -30,8 +30,8 @@ public class Game : GameWindow
 
     // Titlul ferestrei: se reface de câteva ori pe secundă, nu la fiecare cadru.
     private readonly string _baseTitle;
-    private double _titleTimer, _fpsTimer;
-    private int _frames, _lastFrames;
+    private double _titleTimer, _fpsTimer, _lastFps;
+    private int _frames;
 
     public Game(int width, int height, string title)
         : base(GameWindowSettings.Default,
@@ -65,7 +65,8 @@ public class Game : GameWindow
         BindCommonActions();
 
         _scenes.Add(new LabScene());
-        // TEMA: adăugați aici scena (sau scenele) temei; Tab trece de la o scenă la alta.
+        _scenes.Add(new MasinaScene());
+        _scenes.Add(new RoataPanoramica());
 
         foreach (Scene scene in _scenes)
         {
@@ -211,9 +212,9 @@ public class Game : GameWindow
         _fpsTimer += realSeconds;
         if (_fpsTimer >= 1.0)
         {
-            _lastFrames = _frames;
+            _lastFps = _frames / _fpsTimer;
             _frames = 0;
-            _fpsTimer -= Math.Floor(_fpsTimer);
+            _fpsTimer = 0.0;
         }
 
         _titleTimer += realSeconds;
@@ -222,7 +223,7 @@ public class Game : GameWindow
 
         string pause = _clock.Paused ? " | PAUZĂ" : "";
         string status = ActiveScene.Status.Length > 0 ? $" | {ActiveScene.Status}" : "";
-        Title = $"{_baseTitle} | {ActiveScene.Name} | t = {_clock.TotalTime:F1} s | × {_clock.TimeScale:0.###}{pause}{status} | FPS: {_lastFrames}";
+        Title = $"{_baseTitle} | {ActiveScene.Name} | t = {_clock.TotalTime:F1} s | × {_clock.TimeScale:0.###}{pause}{status} | FPS: {_lastFps:F0}";
     }
 
     private void PrintHelp()
@@ -237,7 +238,7 @@ public class Game : GameWindow
             $"Scena          : {ActiveScene.Name}",
             $"Timp de joc    : {_clock.TotalTime:F2} s   scara: × {_clock.TimeScale:0.###}   pauză: {(_clock.Paused ? "da" : "nu")}",
             $"Δt real / joc  : {_clock.RealDeltaTime * 1000:F1} ms / {_clock.DeltaTime * 1000:F1} ms",
-            $"Cadre/secundă  : {_lastFrames}   VSync: {(VSync == VSyncMode.On ? "pornit" : "oprit")}",
+            $"Cadre/secundă  : {_lastFps:F0}   VSync: {(VSync == VSyncMode.On ? "pornit" : "oprit")}",
         };
         lines.AddRange(ActiveScene.Describe());
         ConsolePanel.PrintInfo(lines);
