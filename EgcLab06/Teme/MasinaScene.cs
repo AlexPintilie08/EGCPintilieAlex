@@ -177,11 +177,12 @@ public sealed class MasinaScene : Scene
 
         if (_easeIndex != _driveEaseIndex)
         {
-            float boundary = (MathF.Floor(_drive.Elapsed / duration) + 1.0f) * duration;
-            float toBoundary = boundary - _drive.Elapsed;
+            float toBoundary = _drive.Elapsed % duration == 0.0f
+                ? 0.0f
+                : (MathF.Floor(_drive.Elapsed / duration) + 1.0f) * duration - _drive.Elapsed;
             if (dt >= toBoundary)
             {
-                _drive.Update(toBoundary);
+                if (toBoundary > 0.0f) _drive.Update(toBoundary);
                 int boundaryIndex = (int)MathF.Round(_drive.Elapsed / duration);
                 Vector3 from = boundaryIndex % 2 == 1 ? _drive.To : _drive.From;
                 Vector3 to = Vector3.DistanceSquared(from, Start) < 1e-5f ? End : Start;
@@ -203,7 +204,7 @@ public sealed class MasinaScene : Scene
         float distance = _car.Transform.Position.X - oldX;
         foreach (var wheel in _wheels)
         {
-            float wheelTurn = MathHelper.RadiansToDegrees(distance / wheel.Radius);
+            float wheelTurn = MathHelper.RadiansToDegrees(-distance / wheel.Radius);
             wheel.Pivot.Transform.Rotation.Z += wheelTurn;
         }
     }
