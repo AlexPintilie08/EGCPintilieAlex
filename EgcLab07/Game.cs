@@ -71,7 +71,7 @@ public class Game : GameWindow
         BindCommonActions();
 
         _scenes.Add(new LabScene());
-        // TEMA: adăugați aici scena (sau scenele) temei; Tab trece de la o scenă la alta.
+        _scenes.Add(new PlanetaScene());
 
         foreach (Scene scene in _scenes)
         {
@@ -116,6 +116,7 @@ public class Game : GameWindow
     private void ActivateScene(int index)
     {
         _current = index;
+        ActiveScene.ShowUV = _showUV;
         _camera.Position = ActiveScene.CameraPosition;
         _camera.Target = ActiveScene.CameraTarget;
         _panel.SetParams(ActiveScene.Params);
@@ -170,6 +171,7 @@ public class Game : GameWindow
         if (_input.WasPressed(Actions.ShowUV))
         {
             _showUV = !_showUV;
+            ActiveScene.ShowUV = _showUV;
             ConsolePanel.PrintMessage($"uShowUV = {_showUV}");
         }
 

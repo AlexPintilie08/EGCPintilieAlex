@@ -27,6 +27,8 @@ public abstract class Scene : IDisposable
 
     public abstract string Name { get; }
 
+    public bool ShowUV { get; set; }
+
     public Vector3 CameraPosition { get; protected set; } = new(0.0f, 6.0f, 12.0f);
     public Vector3 CameraTarget { get; protected set; } = Vector3.Zero;
 
