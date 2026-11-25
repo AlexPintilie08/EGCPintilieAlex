@@ -31,7 +31,10 @@ float checker(vec2 p)
 float gridLines(vec2 p)
 {
     vec2 f = fract(p);
-    return 1.0 - step(uLineWidth, f.x) * step(uLineWidth, f.y);
+    vec2 edge = min(f, 1.0 - f);
+    vec2 width = fwidth(p);
+    vec2 clear = smoothstep(vec2(uLineWidth) - width, vec2(uLineWidth) + width, edge);
+    return 1.0 - clear.x * clear.y;
 }
 
 void main()
